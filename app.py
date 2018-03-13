@@ -9,6 +9,8 @@ from wtforms import StringField, SubmitField, IntegerField, ValidationError
 from wtforms.validators import Required, Length
 from flask_sqlalchemy import SQLAlchemy
 from flask_script import Manager, Shell
+import requests # add
+import json # add
 
 # App setup code
 app = Flask(__name__)
@@ -32,9 +34,23 @@ db = SQLAlchemy(app) # For database use
 # (More challenging) Define a function called get_or_create_author.
 # It should accept an author name and return a Author object (an instance of model Author).
 # It should check whether there exists a author by the input name. If there is, it should return that author. If there is not, it should create and save to the database a author with that name, and return the new Author instance.
+def get_or_create_author(name):
+    author = Author.query.filter_by(name=name).first()
+    if not author:
+        author = Author(name=name)
+        db.session.add(author)
+        db.session.commit()
+    return author
 
 
 # (Easier) Define a function called get_book_info that takes as input a string representing a book title, searches for that title with a request to the iTunes API for media type "ebook" (check out the documentation!), and returns a Python object representation of the data resulting from that API request.
+def get_book_info(title):
+    baseurl = "https://itunes.apple.com/search"
+    params = {}
+    params["media"] = "ebook"
+    params["term"] = title
+    resp = requests.get(baseurl,params=params)
+    return json.loads(resp.text)
 
 
 ##################
@@ -68,7 +84,7 @@ class EnterBookAuthor(FlaskForm):
 #######################
 
 # Note: In THIS application, you can't enter duplicate authors (if you enter the same author again, it doesn't save a NEW author), but you COULD enter duplicate books.
-@app.route('/')
+@app.route('/',methods=["GET","POST"]) # change
 def home():
     form = EnterBookAuthor()
     if form.validate_on_submit():
@@ -91,7 +107,7 @@ def all_books():
             desc = info[0]["description"]
         else:
             desc = "No description available"
-        author = Author.query.filter_by(id=bk.author_id)
+        author = Author.query.filter_by(id=bk.author_id).first() # Change
         tup = (bk.title,desc,author.name)
         books_and_authors.append(tup)
     return render_template('books.html',books_and_authors=books_and_authors)

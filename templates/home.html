@@ -4,6 +4,7 @@
 {% block stuff %}
 
 <form action="" method="POST">
+    {{ form.hidden_tag() }}
     {{ form.title.label() }}{{ form.title() }}<br>
     {{ form.author.label() }}{{ form.author() }}
     {{ form.submit() }}
